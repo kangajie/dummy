@@ -1082,6 +1082,26 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW reg failed', err));
   });
 }
+
+let deferredPromptDash;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPromptDash = e;
+  const btnInstall = document.getElementById('btnInstallDash');
+  if(btnInstall) {
+    btnInstall.style.display = 'block';
+    btnInstall.addEventListener('click', async () => {
+      if (deferredPromptDash) {
+        deferredPromptDash.prompt();
+        const { outcome } = await deferredPromptDash.userChoice;
+        if (outcome === 'accepted') {
+          btnInstall.style.display = 'none';
+        }
+        deferredPromptDash = null;
+      }
+    });
+  }
+});
 </script>
 
 </body></html>
