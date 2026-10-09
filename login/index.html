@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Login - SmartAgro</title>
+  <link rel="icon" href="data:image/png;base64,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" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4faf6; --surface: #ffffff; --ink: #10261a; --muted: #587062; --line: #d3e5d9;
+      --red: #c8372f; --g500: #2e9d5a; --g600: #228049; --g900: #0d3b22;
+      --font-d: 'Bricolage Grotesque', sans-serif;
+      --font-b: 'Figtree', sans-serif;
+    }
+    body {
+      margin: 0; padding: 0; background: linear-gradient(135deg, var(--bg) 0%, #e0f0e6 100%);
+      font-family: var(--font-b); display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .card {
+      background: var(--surface); padding: 36px 32px; border-radius: 24px;
+      box-shadow: 0 16px 48px rgba(13,59,34,0.12); width: 100%; max-width: 360px; text-align: center;
+      border: 1px solid #fff; box-sizing: border-box; margin: 16px;
+    }
+    .logo {
+      width: 84px; height: 84px; margin: 0 auto 20px; border-radius: 50%;
+      background: url('../assets/image/logo-itech.jpg') center/cover;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 3px solid #fff;
+    }
+    h2 { margin: 0 0 8px; color: var(--g900); font-family: var(--font-d); font-size: 26px; letter-spacing: -0.5px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+    
+    .field { text-align: left; margin-bottom: 16px; position: relative; }
+    .field label {
+      font-size: 13.5px; font-weight: 600; color: var(--ink); display: block; margin-bottom: 8px;
+    }
+    .txt {
+      width: 100%; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 12px;
+      font-size: 15px; box-sizing: border-box; font-family: inherit; background: #fafdfb;
+      transition: all 0.2s; color: var(--ink);
+    }
+    .txt:focus {
+      outline: none; border-color: var(--g500); background: #fff; box-shadow: 0 0 0 4px var(--line);
+    }
+    .txt::placeholder { color: #9ab3a3; }
+    
+    .btn {
+      background: var(--g500); color: #fff; border: none; padding: 14px; border-radius: 12px;
+      font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit;
+      transition: all 0.2s; box-shadow: 0 4px 12px rgba(46,157,90,0.3); margin-top: 8px;
+    }
+    .btn:hover { background: var(--g600); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(46,157,90,0.4); }
+    .btn:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(46,157,90,0.3); }
+    
+    #lErr { color: var(--red); font-size: 13.5px; font-weight: 600; margin: 16px 0 0; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"></div>
+    <h2>SmartAgro</h2>
+    <p class="sub">Autentikasi panel operator</p>
+    
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="lUser" class="txt" placeholder="Masukkan username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="lPass" class="txt" placeholder="Masukkan password">
+    </div>
+    
+    <button id="btnLogin" class="btn">Login Dashboard</button>
+    <p id="lErr"></p>
+  </div>
+
+  <script>
+    const btn = document.getElementById('btnLogin');
+    const u = document.getElementById('lUser');
+    const p = document.getElementById('lPass');
+    const err = document.getElementById('lErr');
+
+    btn.addEventListener('click', () => {
+      if(u.value === 'admin' && p.value === 'admin1234'){
+        sessionStorage.setItem('auth', 'true');
+        window.location.replace('../index.html');
+      } else {
+        err.textContent = 'Username atau password salah!';
+      }
+    });
+    p.addEventListener('keydown', e => { if(e.key === 'Enter') btn.click() });
+    u.addEventListener('keydown', e => { if(e.key === 'Enter') p.focus() });
+  </script>
+</body>
+</html>
