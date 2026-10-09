@@ -1,0 +1,1078 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SmartAgro Dryer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: header hijau + banner alarm, kolom indikator/kontrol, kartu kurva prediksi, kartu parameter. Di HP urutannya: indikator, grafik, burner, oven, parameter. Tema terang hijau-putih sengaja satu tampilan; oranye khusus garis suhu aktual, merah khusus bahaya. */
+:root{
+  color-scheme:light;
+  --bg:#f4faf6; --surface:#ffffff; --ink:#10261a; --muted:#587062; --line:#d3e5d9;
+  --g50:#eef8f1; --g100:#dcf0e3; --g300:#8fd0a8; --g500:#2e9d5a; --g600:#228049; --g700:#17653a; --g900:#0d3b22;
+  --amber:#f2b84b; --orange:#e8791d; --orange-d:#b95a0c;
+  --red:#c8372f; --red-bg:#fdeceb; --red-line:#f0b3af;
+  --pred:#3c5a49;
+  --font-d:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-b:'Figtree','Segoe UI',system-ui,sans-serif;
+}
+html{background:linear-gradient(to bottom,var(--g900) env(safe-area-inset-top,0px),var(--bg) env(safe-area-inset-top,0px))}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:14px;line-height:1.45;margin:0}
+*{box-sizing:border-box}
+button,input,select,textarea{font-family:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px}
+
+/* header */
+.top{background:linear-gradient(135deg,var(--g900),var(--g600));color:#fff}
+.topin{padding-block:14px;display:flex;flex-direction:column;gap:12px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{flex:none;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+.brand h1{margin:0;font:700 22px/1.1 var(--font-d);letter-spacing:-.01em}
+.hdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#6ee79a;margin-right:6px;animation:pulse 1.5s infinite;box-shadow:0 0 6px rgba(110,231,154,0.6)}
+.brand p{margin:4px 0 0;font-size:13px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+.conn{margin-left:auto;flex:none;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3)}
+.bar{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:8px}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;min-width:0;margin-right:auto}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.trk{flex:none;width:46px;height:26px;border-radius:999px;background:var(--amber);position:relative;transition:background .2s}
+.trk::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw input:checked+.trk{background:#6ee79a}
+.sw input:checked+.trk::after{transform:translateX(20px)}
+.sw input:focus-visible+.trk{outline:2px solid #fff;outline-offset:2px}
+.swt{display:flex;align-items:baseline;gap:4px;white-space:nowrap}
+.swt small{font-size:13px;opacity:.85;font-weight:500}
+.swt b{font-size:15px}
+@media(min-width:720px){.topin{flex-direction:row;align-items:center;justify-content:space-between;gap:24px}.bar{justify-content:flex-end;gap:14px}.sw{margin-right:6px}}
+.hbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.24)}
+.pwr{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 12px;border-radius:999px;border:2px solid rgba(255,255,255,.6);background:#fff;color:var(--g700);font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+.pwr[aria-pressed=true]{background:#6ee79a;color:var(--g900);border-color:#d6ffe5}
+.pwr.armed{background:var(--red-bg);color:var(--red);border-color:var(--red-line)}
+.hbtn:focus-visible,.pwr:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:480px){.hbtn .t{display:none}.hbtn{width:42px;padding:0}}
+
+/* banner alarm */
+.alarmbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;border-radius:12px;background:var(--red);color:#fff;box-shadow:0 6px 18px rgba(200,55,47,.35)}
+.alarmbar b{font:700 16px var(--font-d)}
+.alarmbar.done{background:var(--g600);box-shadow:0 6px 18px rgba(34,128,73,.35)}
+.alarmbar .btn{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.5);color:#fff;flex:none}
+
+/* layout */
+main{padding-block:16px 40px}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.side{display:contents}
+.cchart,.cedit,.tiles,.cburn,.oven{min-width:0}
+@media(max-width:899px){.tiles{order:1}.cchart{order:2}.cburn{order:3}.oven{order:4}.cedit{order:5}}
+@media(min-width:900px){
+  .grid{grid-template-columns:minmax(0,1fr) 340px;align-items:start;gap:20px}
+  .side{display:flex;flex-direction:column;gap:16px;min-width:0;grid-column:2;grid-row:1;align-self:stretch}
+  .side .cburn{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+  .cchart{grid-column:1;grid-row:1}
+  .cedit{grid-column:1;grid-row:2}
+  .oven{grid-column:2;grid-row:2;position:sticky;top:16px}
+}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{margin:0;font:700 17px/1.2 var(--font-d);letter-spacing:-.005em}
+.card .sub{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--g50);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.tile.wide{grid-column:1 / -1}
+.k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.v{font:700 26px/1.15 var(--font-d);font-variant-numeric:tabular-nums;margin-top:4px}
+.tile.wide .v{font-size:40px}
+.v small{font:500 14px var(--font-b);color:var(--muted);margin-left:2px}
+.note{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.prog{height:6px;border-radius:99px;background:var(--g100);margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--g500);border-radius:99px;transition:width .25s}
+.pill{display:inline-flex;align-items:center;gap:7px;font:700 18px/1.2 var(--font-d);margin-top:6px}
+.dot{width:10px;height:10px;border-radius:50%;background:#9bb3a4}
+.st-running .dot{background:var(--g500);animation:pulse 1.4s infinite}
+.st-finish .dot{background:var(--g700)}
+.tile.alarm-on{background:var(--red-bg);border-color:var(--red-line);color:var(--red)}
+.tile.alarm-on .k{color:var(--red)}
+.tile.alarm-on .dot{background:var(--red);animation:pulse .7s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.dot{animation:none!important}.prog i{transition:none}}
+
+/* burner */
+.big{font:700 32px/1 var(--font-d);font-variant-numeric:tabular-nums}
+.burner-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.ignrow{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.ignbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:999px;background:var(--orange-d);color:#fff;font:700 14px/1 var(--font-b,inherit);cursor:pointer;transition:filter .15s,transform .1s}
+.ignbtn:hover:not(:disabled){filter:brightness(1.06)}
+.ignbtn:active:not(:disabled){transform:scale(.97)}
+.ignbtn:disabled{background:#dfe7e2;color:#8a9a91;cursor:not-allowed}
+.ignbtn.on{background:#c9302c;animation:ignp .5s ease-in-out infinite alternate}
+@keyframes ignp{from{box-shadow:0 0 0 0 rgba(201,48,44,.5)}to{box-shadow:0 0 0 8px rgba(201,48,44,0)}}
+@media(prefers-reduced-motion:reduce){.ignbtn.on{animation:none}}
+.ignnote{font-size:12px;color:var(--muted);flex:1;min-width:140px}
+.ignnote:empty{display:none}
+.lock{font-size:12px;color:var(--muted);margin-top:6px;min-height:17px}
+.linkbtn{display:inline;border:0;background:none;padding:0;margin-left:6px;color:var(--g700);font-weight:700;font-size:12px;text-decoration:underline;cursor:pointer}
+
+/* slider */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:32px;margin:0;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(to right,var(--g500) var(--p,0%),var(--g100) var(--p,0%))}
+input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--g100)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--g500)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--g600);margin-top:-9px;box-shadow:0 1px 4px rgba(13,59,34,.3)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--g600)}
+input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--g500);outline-offset:2px}
+input[type=range]:disabled{opacity:.45;cursor:not-allowed}
+
+/* segmented + buttons */
+.seg{display:inline-flex;background:var(--g50);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:999px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--g600);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--g300);background:var(--g50)}
+.btn.primary{background:var(--g600);border-color:var(--g600);color:#fff}
+.btn.primary:hover{background:var(--g700)}
+.seg button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--g500);outline-offset:2px}
+
+/* chart */
+#chartBox{width:100%;position:relative;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+#chart{display:block;min-width:640px;width:100%;user-select:none;-webkit-user-select:none}
+#chart .pt{cursor:grab;touch-action:none}
+#chart .pt:active{cursor:grabbing}
+#chart .pt:focus{outline:none}
+#chart .pt:focus-visible .ring{stroke:var(--g900);stroke-width:3}
+.warnbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border-radius:10px;background:var(--red-bg);border:1px solid var(--red-line);color:var(--red);font-size:13px}
+.warnbar .btn{color:var(--red);border-color:var(--red-line)}
+.readout{min-height:20px;margin-top:8px;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.readout b{font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.hintrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--g50);min-width:0}
+.stat .v{font-size:20px}
+
+[hidden]{display:none!important}
+/* parameter */
+.grp+.grp{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.gh{margin:0 0 12px;font:700 15px var(--font-d)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:16px 20px}
+.fld{min-width:0}
+.amanhint{order:2;grid-column:span 2;align-self:start;margin:0;padding:10px 12px 10px 38px;position:relative;border-radius:10px;background:var(--g50);border:1px solid var(--line);font-size:12.5px;line-height:1.5;color:var(--g700)}
+.amanhint::before{content:"!";position:absolute;left:12px;top:10px;width:18px;height:18px;border-radius:50%;background:var(--g600);color:#fff;font:700 12px/18px var(--font-b);text-align:center}
+@media(max-width:620px){.amanhint{grid-column:1/-1;order:3}}
+.txt{width:100%;height:40px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px;font:600 14px var(--font-b);color:var(--ink,#16301f)}
+.tplrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tplrow select{flex:1;min-width:170px;height:40px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 10px;font:600 14px var(--font-b);color:var(--ink)}
+.tplrow select:disabled,.tplrow .btn:disabled{opacity:.5;cursor:not-allowed}
+.tplinfo{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.tplinfo .linkbtn{margin-left:4px}
+.tplform{margin-top:12px;padding:14px;border:1px dashed var(--g300);border-radius:12px;background:var(--g50)}
+.tfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 12px}
+.tfgrid label{display:block;font-size:12.5px;font-weight:600;color:var(--muted)}
+.tfgrid .tfw{grid-column:1/-1}
+.tferr{min-height:18px;margin:8px 0 0;font-size:12.5px;color:var(--red);font-weight:600}
+.tfact{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:480px){.tfgrid{grid-template-columns:1fr 1fr}.tplrow select{flex:1 1 100%}.tplrow .btn{flex:1;justify-content:center}}
+.txt:focus{outline:none;border-color:var(--g500);box-shadow:0 0 0 3px rgba(35,160,92,.15)}
+.fld .lbl{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:32px}
+.fld .lbl label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.vbox{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:12.5px;font-weight:600}
+.vbox input{width:68px;height:32px;border:1px solid transparent;border-radius:8px;background:var(--g50);text-align:right;font:700 14px var(--font-b);font-variant-numeric:tabular-nums;color:var(--g700);padding:0 8px}
+.vbox input:hover{border-color:var(--g300)}
+.vbox input:focus{background:#fff;border-color:var(--g500)}
+.vbox input:disabled{background:transparent;color:var(--muted)}
+.mm{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-2px}
+.check{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.check input{accent-color:var(--g600);width:16px;height:16px;margin:0}
+.lockn{margin:14px 0 0;padding:8px 12px;border-radius:10px;background:var(--g50);border:1px dashed var(--g300);color:var(--g700);font-size:12.5px}
+
+/* oven */
+.oven{padding:0}
+.oven summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font:700 17px/1.2 var(--font-d)}
+.oven summary::-webkit-details-marker{display:none}
+.oven summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s;margin-right:4px}
+.oven[open] summary::after{transform:rotate(-135deg)}
+.ovbody{padding:0 16px 14px}
+#ovenSvg{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+.ovcap{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.ovcap b{color:var(--ink);font-variant-numeric:tabular-nums}
+.flame,.flame .fl{transform-box:fill-box;transform-origin:50% 100%}
+.flame{transition:transform .3s,opacity .3s}
+.flame .fl{animation:flick .5s ease-in-out infinite alternate}
+@keyframes flick{from{transform:scale(1,1)}to{transform:scale(.93,1.08)}}
+.wave{animation:rise 2.2s ease-in infinite}
+.wave:nth-child(2){animation-delay:.7s}
+.wave:nth-child(3){animation-delay:1.4s}
+@keyframes rise{0%{transform:translateY(10px);opacity:0}30%{opacity:1}100%{transform:translateY(-16px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.flame .fl,.wave{animation:none}}
+
+/* csv */
+#csvPanel{margin-bottom:16px}
+#csvPanel textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:10px;padding:10px;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;resize:vertical;background:var(--g50);color:var(--ink)}
+</style>
+
+<header class="top">
+  <div class="wrap topin">
+    <div class="brand">
+      <div style="display:flex; align-items:center; gap:8px; flex:none;">
+        <img src="assets/image/logo-itech.jpg" alt="AITECH" style="height:46px; width:46px; border-radius:50%; object-fit:cover; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+      </div>
+      <div style="min-width:0;"><h1>SmartAgro</h1><p id="hSub">Status: Perangkat Aktif & Terhubung ESP32</p></div>
+      <span class="conn" id="conn" hidden></span>
+    </div>
+    <div class="bar">
+      <label class="sw"><input type="checkbox" id="swAuto" checked><span class="trk"></span><span class="swt"><small>Burner</small><b id="swTxt">Otomatis</b></span></label>
+      <button class="hbtn" id="btnCsv" type="button" aria-expanded="false" aria-label="Data CSV">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+        <span class="t">Data CSV</span>
+      </button>
+      <button class="pwr" id="btnPwr" type="button" aria-pressed="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/></svg>
+        <span id="pwrTxt">Mulai</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="alarmbar" id="alarmBar" role="alert" hidden>
+    <div><b id="abTitle">Overheat!</b> <span id="abMsg"></span></div>
+    <button class="btn" id="btnMute" type="button">Bisukan</button>
+  </div>
+
+  <section class="card" id="csvPanel" hidden>
+    <div class="head">
+      <div><h2>Data sesi (CSV)</h2><p class="sub">Salin, lalu tempel ke Excel, Google Sheets, atau Notes dan simpan sebagai .csv.</p></div>
+      <button class="btn primary" id="btnCopy" type="button">Salin data</button>
+    </div>
+    <textarea id="csvText" readonly aria-label="Isi CSV"></textarea>
+  </section>
+
+  <div class="grid">
+    <div class="side">
+      <div class="tiles">
+        <div class="tile wide"><div class="k">Temperatur</div><div class="v"><span id="tTemp">30.0</span><small>°C</small></div><div class="note" id="tTempNote">Prediksi 30.0 °C</div><div class="note" id="tBand"></div></div>
+        <div class="tile"><div class="k">Burner</div><div class="v"><span id="tBurn">0</span><small>%</small></div></div>
+        <div class="tile"><div class="k">Waktu</div><div class="v"><span id="tTime">0</span><small>/ <span id="tDur">90</span> mnt</small></div><div class="prog"><i id="tProg"></i></div></div>
+        <div class="tile" id="tileStatus"><div class="k">Status</div><div class="pill"><span class="dot"></span><span id="tStatus">Standby</span></div></div>
+        <div class="tile" id="tileAlarm"><div class="k">Alarm</div><div class="pill"><span class="dot"></span><span id="tAlarm">Diam</span></div></div>
+      </div>
+
+      <section class="card cburn" aria-label="Kontrol burner">
+        <div class="burner-row"><h2>Kontrol burner</h2><span class="big"><span id="bVal">0</span>%</span></div>
+        <input type="range" id="bSlider" min="0" max="100" step="1" value="0" aria-label="Daya burner">
+        <div class="ignrow">
+          <button class="ignbtn" id="btnIgn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.3 1 2 2 2.3C10.5 8.5 11 5.5 12 3z"/></svg><span id="ignTxt">Pemantik</span></button>
+          <span class="ignnote" id="ignNote">Nyalakan dulu alat untuk memakai pemantik</span>
+        </div>
+        <div class="lock"><span id="bLock"></span><button class="linkbtn" id="btnRestart" type="button" hidden>Mulai ulang dari 0</button></div>
+      </section>
+    </div>
+
+    <details class="card oven" id="oven" open>
+        <summary>Jendela oven</summary>
+        <div class="ovbody">
+          <svg id="ovenSvg" viewBox="0 0 260 224" role="img" aria-label="Ilustrasi oven pengering: warna bahan, nyala api, dan uap panas mengikuti kondisi alat">
+            <rect x="44" y="176" width="12" height="37" rx="3" fill="#587062"/><rect x="204" y="176" width="12" height="37" rx="3" fill="#587062"/>
+            <rect x="22" y="8" width="216" height="168" rx="18" fill="#eef8f1" stroke="#17653a" stroke-width="3"/>
+            <rect x="40" y="34" width="180" height="124" rx="10" id="ovGlass" fill="#fbfdf7" stroke="#17653a" stroke-width="2"/>
+            <rect x="40" y="13" width="82" height="16" rx="5" fill="#0d3b22"/>
+            <text id="ovTemp" x="81" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee79a" font-family="Figtree,system-ui,sans-serif">30.0°C</text>
+            <circle id="ovLed" cx="208" cy="21" r="5" fill="#9bb3a4"/>
+            <g stroke="#7d9a89" stroke-width="2.5" stroke-linecap="round"><line x1="52" y1="74" x2="208" y2="74"/><line x1="52" y1="108" x2="208" y2="108"/><line x1="52" y1="142" x2="208" y2="142"/></g>
+            <g id="ovNoodle" fill="none" stroke="#efe3bd" stroke-width="3" stroke-linecap="round"></g>
+            <g id="ovWaves" fill="none" stroke="#e08a2d" stroke-width="2" stroke-linecap="round" opacity="0">
+              <path class="wave" d="M78 150 q6-7 0-14 t0-14"/><path class="wave" d="M130 150 q6-7 0-14 t0-14"/><path class="wave" d="M182 150 q6-7 0-14 t0-14"/>
+            </g>
+            <g id="ovFlame" class="flame" style="opacity:0"><g class="fl">
+              <path d="M96 204 c-8-8-7-17 0-26 c7 9 8 18 0 26z" fill="#f08a24"/>
+              <path d="M130 204 c-9-9-8-19 0-30 c8 11 9 21 0 30z" fill="#f08a24"/>
+              <path d="M164 204 c-8-8-7-17 0-26 c7 9 8 18 0 26z" fill="#f08a24"/>
+              <path d="M130 204 c-4-5-4-10 0-16 c4 6 4 11 0 16z" fill="#ffd36b"/>
+            </g></g>
+            <rect x="66" y="204" width="128" height="9" rx="4.5" fill="#587062"/>
+          </svg>
+          <div class="prog"><i id="ovProg"></i></div>
+          <div class="ovcap"><span>Kekeringan <b id="ovDry">0%</b></span><span id="ovNote">Alat standby</span></div>
+          <div class="note" style="margin-top:4px">Kekeringan adalah estimasi dari akumulasi panas, bukan hasil sensor kadar air.</div>
+        </div>
+      </details>
+
+    <section class="card cchart" aria-label="Kurva prediksi">
+      <div class="head">
+        <div><h2>Kurva prediksi suhu</h2><p class="sub" id="chartSub"></p></div>
+        <div class="seg" id="pmSeg" hidden role="group" aria-label="Mode pembentukan kurva"><button type="button" data-pm="auto" aria-pressed="true">Otomatis</button><button type="button" data-pm="manual" aria-pressed="false">Manual</button></div>
+      </div>
+      <div class="warnbar" id="warn" hidden><span id="warnTxt"></span><button class="btn" id="btnFixOh" type="button">Ikuti batas atas + 10 °C</button></div>
+      <div id="chartBox"><svg id="chart" role="img" aria-label="Grafik suhu aktual dan prediksi"><g id="gStatic"></g><g id="gActual"></g><g id="gHover"></g></svg></div>
+      <div class="readout" id="readout"></div>
+      <div class="legend">
+        <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#3c5a49" stroke-width="2" stroke-dasharray="5 4"/></svg>Prediksi</span>
+        <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#e8791d" stroke-width="3.5" stroke-linecap="round"/></svg>Aktual</span>
+        <span><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="#2e9d5a" stroke="#fff" stroke-width="1.5"/></svg>Matang</span>
+        <span><svg width="26" height="10"><rect x="0" y="0" width="26" height="10" rx="2" fill="#fdeceb"/><line x1="0" y1="9" x2="26" y2="9" stroke="#c8372f" stroke-width="1.5" stroke-dasharray="2 3"/></svg>Zona overheat</span>
+      </div>
+      <div class="hintrow">
+        <p class="hint">Seret titik untuk mengubah kurva. Klik dua kali untuk tambah atau hapus titik.</p>
+        <button class="btn" id="btnResetCurve" type="button" hidden>Reset kurva</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Rentang suhu</div><div class="v" id="sTarget">50–60 °C</div></div>
+        <div class="stat"><div class="k">Capai target</div><div class="v" id="sReach">27 mnt</div></div>
+        <div class="stat"><div class="k">Sisa waktu</div><div class="v" id="sLeft">90 mnt</div></div>
+        <div class="stat"><div class="k">Laju awal</div><div class="v" id="sRate">1.2 °C/mnt</div></div>
+      </div>
+    </section>
+
+    <section class="card cedit" aria-label="Parameter prediksi">
+      <div class="head" style="margin-bottom:14px"><div><h2>Parameter</h2><p class="sub">Geser slider, atau ketuk angka di sampingnya untuk mengetik nilai tepat.</p></div></div>
+      <div class="grp" id="gTpl"><h3 class="gh">Template mode otomatis</h3>
+        <div class="tplrow">
+          <select id="tplSel" aria-label="Pilih template"></select>
+          <button class="btn" id="tplNew" type="button">+ Baru</button>
+          <button class="btn" id="tplEdit" type="button">Edit</button>
+          <button class="btn" id="tplDel" type="button">Hapus</button>
+        </div>
+        <p class="tplinfo" id="tplInfo"></p>
+        <form class="tplform" id="tplForm" hidden novalidate>
+          <div class="tfgrid">
+            <label class="tfw">Nama template<input class="txt" id="tfName" type="text" maxlength="28" placeholder="Contoh: Formula 2" autocomplete="off"></label>
+            <label>Suhu minimum (°C)<input class="txt" id="tfLo" type="number" inputmode="decimal" step="0.5" placeholder="Contoh: 50"></label>
+            <label>Suhu maksimum (°C)<input class="txt" id="tfHi" type="number" inputmode="decimal" step="0.5" placeholder="Contoh: 60"></label>
+            <label hidden>Capai target (menit)<input class="txt" id="tfReach" type="number" inputmode="decimal" step="1" placeholder="Contoh: 27"></label>
+          </div>
+          <p class="tferr" id="tfErr" role="alert"></p>
+          <div class="tfact"><button class="btn primary" type="submit" id="tfSave">Simpan template</button><button class="btn" type="button" id="tfCancel">Batal</button></div>
+        </form>
+      </div>
+      <div class="grp"><h3 class="gh">Suhu</h3><div class="fields" id="fSuhu"></div></div>
+      <div class="grp"><h3 class="gh">Waktu</h3><div class="fields" id="fWaktu"></div></div>
+      <div class="grp"><h3 class="gh">Pengaman</h3><div class="fields" id="fAman"><p class="amanhint">Bila suhu mencapai batas ini, alarm berbunyi dan burner otomatis dimatikan.</p></div></div>
+      <p class="lockn" id="lockNote" hidden>Template, suhu awal, rentang, durasi, dan waktu capai dikunci saat alat berjalan. Hentikan alat untuk mengubahnya.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+'use strict';
+/* ====== Konfigurasi. Ubah LIVE=true dan API untuk ESP32 sungguhan ====== */
+/* LIVE otomatis aktif saat halaman dibuka dari ESP32 (http). Di artifact atau file lokal tetap mode simulasi. */
+const CFG={LIVE:location.protocol==='http:',API:'',AMB:30,POLL:2000};
+
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const f1=v=>Number(v).toFixed(1);
+const nz=v=>String(Math.round(v*10)/10);
+function num(v,d){const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:d}
+
+const S={
+  power:false,ctrlAuto:true,burner:0,minute:0,temp:30,status:'standby',alarm:false,hist:[],mute:false,beepN:0,lk:null,
+  pm:'auto',stash:null,T0:30,lo:50,hi:60,name:'Mie sehat',fault:false,tpls:[],tplId:'',held:false,target:55,duration:90,reach:27,overheat:70,ohLink:true,matang:76,
+  points:[],fn:null,dragYmax:0,focusI:-1,heatAcc:0,heatTot:1
+};
+let G=null, drag=null, lastTap={t:0,x:0,y:0}, sendTimer=0, stopArm=0, actx=null;
+
+/* ====== Kurva ====== */
+function autoPoints(){
+  const d=S.duration,T0=S.T0,tg=S.target;
+  let r = -Math.log(Math.max(0.1, (115 - tg)/(115 - T0))) / 0.045;
+  if(!isFinite(r)) r = 5;
+  r = clamp(r, 1, d*0.5);
+  S.reach = r;
+  const dl=tg-T0;
+  const m = Math.max(r, S.matang);
+  if(m >= d) {
+    return [{t:0,T:T0},{t:+(r*0.4).toFixed(1),T:+(T0+dl*0.62).toFixed(1)},{t:+r.toFixed(1),T:tg},{t:d,T:tg}];
+  }
+  const dt = d - m;
+  const endT = CFG.AMB + (tg - CFG.AMB) * Math.exp(-0.015 * dt);
+  return [{t:0,T:T0},{t:+(r*0.4).toFixed(1),T:+(T0+dl*0.62).toFixed(1)},{t:+r.toFixed(1),T:tg},{t:m,T:tg},{t:d,T:Math.round(endT)}];
+}
+function normalize(){
+  const d=S.duration,p=S.points;
+  p.forEach(q=>{q.t=clamp(q.t,0,d);q.T=clamp(q.T,20,150)});
+  p.sort((a,b)=>a.t-b.t);
+  for(let i=1;i<p.length;i++) if(p[i].t<p[i-1].t+0.5) p[i].t=p[i-1].t+0.5;
+  if(p.length&&p[p.length-1].t>d) p[p.length-1].t=d;
+  for(let i=p.length-2;i>=0;i--) if(p[i].t>p[i+1].t-0.5) p[i].t=Math.max(0,p[i+1].t-0.5);
+}
+function makeFn(pts){
+  const n=pts.length;
+  if(!n) return ()=>S.T0;
+  if(n===1) return ()=>pts[0].T;
+  const x=pts.map(p=>p.t),y=pts.map(p=>p.T),dx=[],m=[],c=[];
+  for(let i=0;i<n-1;i++){dx[i]=Math.max(1e-6,x[i+1]-x[i]);m[i]=(y[i+1]-y[i])/dx[i]}
+  c[0]=m[0];c[n-1]=m[n-2];
+  for(let i=1;i<n-1;i++){
+    if(m[i-1]*m[i]<=0) c[i]=0;
+    else{const w1=2*dx[i]+dx[i-1],w2=dx[i]+2*dx[i-1];c[i]=(w1+w2)/(w1/m[i-1]+w2/m[i])}
+  }
+  return q=>{
+    if(q<=x[0]) return y[0];
+    if(q>=x[n-1]) return y[n-1];
+    let i=0;while(i<n-2&&q>x[i+1]) i++;
+    const h=dx[i],t=(q-x[i])/h,t2=t*t,t3=t2*t;
+    return (2*t3-3*t2+1)*y[i]+(t3-2*t2+t)*h*c[i]+(-2*t3+3*t2)*y[i+1]+(t3-t2)*h*c[i+1];
+  };
+}
+function matangMin(){return 0}
+function rebuild(){
+  if(S.pm==='auto'){S.target=Math.round((S.lo+S.hi)/2*10)/10;S.points=autoPoints()}
+  normalize();
+  /* di mode kustom, target selalu mengikuti puncak kurva */
+  if(S.pm==='manual') S.target=Math.round(Math.max(...S.points.map(p=>p.T))*10)/10;
+  if(S.ohLink) S.overheat=+(S.hi+10).toFixed(1);
+  S.matang=clamp(S.matang,matangMin(),S.duration);
+  S.fn=makeFn(S.points);
+  let h=0;for(let t=0;t<S.duration;t+=0.25) h+=Math.max(0,S.fn(t)-CFG.AMB)*0.25;
+  S.heatTot=Math.max(1,h);
+}
+function resetSession(){
+  S.minute=0;S.temp=S.T0;S.burner=0;S.alarm=false;S.heatAcc=0;S.held=false;S.status='standby';S.power=false;
+  S.hist=[{t:0,T:S.T0,b:0}];
+}
+function nm(){return (S.name||'').trim()||'Bahan'}
+function locked(){return S.power&&S.status==='running'}
+function overshoot(){for(let t=0;t<=S.duration;t+=0.5) if(S.fn(t)>S.overheat+0.05) return t;return null}
+
+/* ====== Alarm: bunyi + getar ====== */
+function unlockAudio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended') actx.resume()}catch(e){}}
+let finishOsc=null,finishUntil=0,lastStatus='standby',lastAlarm=false,lastFin=false;
+function tone(freq,dur,type,vol){
+  try{
+    unlockAudio();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type;o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(actx.destination);
+    o.start();o.stop(actx.currentTime+dur);
+    return o;
+  }catch(e){return null}
+}
+function vib(p){try{if(navigator.vibrate) navigator.vibrate(p)}catch(e){}}
+function stopFinish(){
+  finishUntil=0;
+  if(finishOsc){try{finishOsc.stop()}catch(e){}finishOsc=null}
+}
+/* Overheat: bip pendek cepat terus-menerus. Selesai: satu bunyi panjang tanpa jeda (6 detik). */
+function soundLoop(){
+  const st=S.status;
+  if(st==='finish'&&lastStatus!=='finish'&&!S.alarm){
+    finishUntil=Date.now()+6000;
+    if(!S.mute) finishOsc=tone(660,6,'sine',0.06);
+    vib(3000);
+  }
+  if(st!=='finish') stopFinish();
+  if(Date.now()>finishUntil) finishOsc=null;
+  if(S.alarm){
+    if(!lastAlarm) vib([200,100,200,100,200]);
+    if(!S.mute) tone(1000,0.09,'square',0.04);
+  }
+  const fin=Date.now()<finishUntil;
+  if(fin!==lastFin){lastFin=fin;renderLive()}
+  lastStatus=st;lastAlarm=S.alarm;
+}
+
+/* ====== Simulasi ====== */
+function tick(){
+  if(CFG.LIVE||!S.power||S.status==='finish') return;
+  if(S.ctrlAuto){
+    let b = 0;
+    if(S.pm === 'auto' && S.temp < S.lo - 1.5) {
+      b = 100; // Gas pol saat awal
+    } else {
+      const w=S.hi-S.lo,top=S.hi-0.15*w;
+      if(S.temp>=S.lo) S.held=true;
+      const sp=t=>{let v=Math.min(S.fn(t),top);return S.held?Math.max(v,S.lo+0.15*w):v};
+      b=((sp(S.minute+3)-CFG.AMB)/85)*100+14*(sp(S.minute)-S.temp);
+    }
+    S.burner=Math.round(b);
+  }
+  
+  // Klep gas fisik minimum 10% (selama alat menyala/mulai)
+  S.burner = clamp(S.burner, 10, 100);
+
+  // Safety cut-off: matikan api (0%) HANYA jika overheat ekstrem atau sudah lewat titik matang
+  if(S.temp>=S.overheat-0.5) S.burner=0;
+  if(S.minute >= S.matang) S.burner = 0;
+  
+  // Realisme: Fluktuasi klep
+  if(S.burner > 10 && S.burner < 95) S.burner = clamp(S.burner + Math.round((Math.random() - 0.5) * 4), 10, 100);
+  // Realisme: Penambahan 'noise' pembacaan sensor termokopel (sekitar +/- 0.3 derajat)
+  const targetT = CFG.AMB + 85 * S.burner/100;
+  const k = targetT < S.temp ? 0.015 : 0.045; // Oven menahan panas, pendinginan lebih lambat dari pemanasan
+  const thermalDelta = (targetT - S.temp) * k * 0.25;
+  const sensorNoise = (Math.random() - 0.5) * 0.7;
+  S.temp += thermalDelta + (S.power ? sensorNoise : 0);
+  S.temp = Math.max(CFG.AMB, S.temp);
+
+  S.heatAcc+=Math.max(0,S.temp-CFG.AMB)*0.25;
+  S.minute+=0.25;
+  if(S.minute>=S.duration){S.minute=S.duration;S.status='finish';S.burner=0;S.power=false}
+  else S.status='running';
+  S.alarm=S.temp>=S.overheat;
+  S.hist.push({t:S.minute,T:S.temp,b:S.burner});
+  renderLive();
+}
+
+/* ====== ESP32 ====== */
+function send(o){
+  if(!CFG.LIVE) return;
+  fetch(CFG.API+'/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}).catch(()=>{});
+}
+/* Pemantik: pulsa 3 detik, lalu jeda 2 detik. ESP32 yang mengatur durasi sebenarnya. */
+var IGN={ms:3000,cool:2000},ignUntil=0,ignCool=0;
+function renderIgn(){
+  const now=Date.now(),on=now<ignUntil,cool=!on&&now<ignCool;
+  const ok=S.power&&S.status!=='finish';
+  const b=$('#btnIgn');
+  b.disabled=!ok||on||cool;
+  b.classList.toggle('on',on);
+  $('#ignTxt').textContent=on?'Memicu '+Math.ceil((ignUntil-now)/1000)+' dtk':'Pemantik';
+  $('#ignNote').textContent=!ok?'':on?'Percikan aktif, api seharusnya menyala':'Tekan untuk memicu api pada burner';
+}
+function ignite(){
+  if(!S.power||S.status==='finish'||Date.now()<ignCool) return;
+  ignUntil=Date.now()+IGN.ms;ignCool=ignUntil+IGN.cool;
+  send({ignite:true,ms:IGN.ms});vib(80);renderIgn();
+}
+function cfgPayload(){return {sp:S.target,lo:S.lo,hi:S.hi,name:S.name,reach:S.reach,dur:S.duration,oh:S.overheat,matang:S.matang,curve:S.points.map(p=>[p.t,p.T])}}
+function sendCurve(){
+  if(!CFG.LIVE) return;
+  clearTimeout(sendTimer);
+  sendTimer=setTimeout(()=>send(cfgPayload()),400);
+}
+async function poll(){
+  try{
+    const r=await fetch(CFG.API+'/api/status');const j=await r.json();
+    S.power=!!j.power;S.ctrlAuto=!!j.auto;S.temp=+j.temp;S.burner=+j.burner;S.status=String(j.status||'standby').toLowerCase();S.alarm=!!j.alarm;S.fault=!!j.fault;
+    if(+j.minute!==S.minute){S.heatAcc+=Math.max(0,S.temp-CFG.AMB)*Math.max(0,+j.minute-S.minute);S.minute=+j.minute;S.hist.push({t:S.minute,T:S.temp,b:S.burner})}
+    $('#conn').textContent='Terhubung';renderLive();
+  }catch(e){$('#conn').textContent='Terputus'}
+}
+
+/* ====== Render: indikator ====== */
+function mix(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')}
+function renderLive(){
+  const lk=locked();
+  if(lk!==S.lk){S.lk=lk;renderParams()}
+  const pr=S.fn(S.minute);
+  $('#tTemp').textContent=f1(S.temp);
+  $('#tTempNote').textContent='Prediksi '+f1(pr)+' °C · selisih '+(S.temp-pr>=0?'+':'')+f1(S.temp-pr)+' °C';
+  $('#tBurn').textContent=Math.round(S.burner);
+  $('#bVal').textContent=Math.round(S.burner);
+  $('#tTime').textContent=Math.floor(S.minute);
+  $('#tDur').textContent=nz(S.duration);
+  $('#tProg').style.width=clamp(S.minute/S.duration*100,0,100)+'%';
+  const names={standby:'Standby',running:'Running',finish:'Finish'};
+  const st=S.status in names?S.status:'standby';
+  $('#tStatus').textContent=names[st];
+  $('#tileStatus').className='tile st-'+st;
+  $('#tAlarm').textContent=S.alarm?'Bunyi':'Diam';
+  $('#tileAlarm').className='tile'+(S.alarm?' alarm-on':'');
+  const inB=S.temp<S.lo-0.5?'di bawah rentang':S.temp>S.hi+0.5?'di atas rentang':'di dalam rentang';
+  $('#tBand').textContent='Rentang '+nz(S.lo)+'–'+nz(S.hi)+' °C · '+inB;
+  $('#tBand').style.color=!S.power||inB==='di dalam rentang'?'':(inB==='di atas rentang'?'var(--red)':'#9a6a00');
+  /* banner alarm */
+  const fin=Date.now()<finishUntil;
+  $('#alarmBar').hidden=!(S.alarm||fin);
+  $('#alarmBar').classList.toggle('done',!S.alarm&&fin);
+  $('#abTitle').textContent=S.alarm?'Overheat!':'Selesai!';
+  $('#abMsg').textContent=S.alarm?'Suhu '+f1(S.temp)+' °C melewati batas '+nz(S.overheat)+' °C. '+(S.ctrlAuto?'Burner dimatikan otomatis.':'Turunkan burner atau hentikan alat.'):'Proses pengeringan selesai. '+nm()+' siap diangkat.';
+  if(S.alarm&&S.fault){$('#abTitle').textContent='Sensor error!';$('#abMsg').textContent='Termokopel tidak terbaca. Burner dimatikan. Periksa kabel sensor.'}
+  $('#btnMute').textContent=S.alarm?(S.mute?'Suara mati':'Bisukan'):'Matikan bunyi';
+  renderIgn();
+  $('#hSub').innerHTML='<span class="hdot"></span>Perangkat Aktif & Terhubung ESP32';
+  /* burner */
+  const sl=$('#bSlider'),can=S.power&&!S.ctrlAuto&&st!=='finish';
+  sl.disabled=!can;
+  if(document.activeElement!==sl) sl.value=Math.round(S.burner);
+  paint(sl);
+  $('#bLock').textContent=!S.power&&st!=='finish'?'Alat mati. Tekan Mulai untuk menyalakan.':st==='finish'?'Proses selesai. Tekan Ulangi untuk mengulang.':S.ctrlAuto?'Burner otomatis aktif, suhu dikunci di '+nz(S.lo)+'–'+nz(S.hi)+' °C.':'Burner manual. Geser untuk mengatur daya.';
+  $('#btnRestart').hidden=!(!S.power&&S.minute>0&&st!=='finish');
+  /* header */
+  $('#swAuto').checked=S.ctrlAuto;
+  $('#swTxt').textContent=S.ctrlAuto?'Otomatis':'Manual';
+  const pw=$('#btnPwr');
+  pw.setAttribute('aria-pressed',S.power?'true':'false');
+  pw.classList.toggle('armed',!!stopArm);
+  $('#pwrTxt').textContent=stopArm?'Yakin berhenti?':S.power?'Hentikan':st==='finish'?'Ulangi':S.minute>0?'Lanjutkan':'Mulai';
+  $('#sLeft').textContent=nz(Math.max(0,S.duration-S.minute))+' mnt';
+  renderActual();
+  renderOven();
+  if(!$('#csvPanel').hidden) buildCsv();
+}
+function renderOven(){
+  const dr=clamp(S.heatAcc/Math.max(1,S.heatTot),0,1),b=S.power?S.burner:0;
+  $('#ovNoodle').setAttribute('stroke',mix('#efe3bd','#c98a2b',dr));
+  $('#ovTemp').textContent=f1(S.temp)+'°C';
+  const fl=$('#ovFlame');fl.style.opacity=b>0?1:0;fl.style.transform='scale('+(0.25+0.75*b/100).toFixed(2)+')';
+  $('#ovWaves').setAttribute('opacity',clamp((S.temp-38)/30,0,1).toFixed(2));
+  $('#ovGlass').setAttribute('fill',S.alarm?'#fdeceb':mix('#fbfdf7','#fff1d6',clamp((S.temp-30)/40,0,1)));
+  $('#ovLed').setAttribute('fill',S.alarm?'#c8372f':S.power?'#6ee79a':'#9bb3a4');
+  $('#ovDry').textContent=Math.round(dr*100)+'%';
+  $('#ovProg').style.width=Math.round(dr*100)+'%';
+  $('#ovNote').textContent=S.alarm?'Terlalu panas!':S.status==='finish'?(dr<0.9?'Selesai, tapi panas belum cukup':'Selesai, angkat '+nm().toLowerCase()+' dari rak'):(S.minute>0&&S.minute>=S.matang)?'Sudah lewat titik matang':S.power?nm()+' sedang dikeringkan':'Alat standby';
+}
+
+/* ====== Render: grafik ====== */
+function yMax(){
+  if(S.dragYmax) return S.dragYmax;
+  const mx=Math.max(S.overheat,S.hi,S.target,S.temp,...S.points.map(p=>p.T));
+  return Math.max(80,Math.ceil((mx+8)/10)*10);
+}
+function niceStep(range,count){
+  const raw=range/count,opts=[1,2,5,10,15,20,30,60,120];
+  for(const o of opts) if(o>=raw) return o;
+  return 240;
+}
+function renderChart(){
+  const box=$('#chartBox');
+  const W=Math.max(640,box.clientWidth),H=clamp(Math.round(W*0.45),260,400);
+  const m={l:42,r:14,t:16,b:32},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  const d=S.duration,ymin=20,ymax=yMax();
+  const X=t=>m.l+t/d*pw,Y=v=>m.t+(1-(clamp(v,ymin,ymax)-ymin)/(ymax-ymin))*ph;
+  G={W,H,m,pw,ph,d,ymin,ymax,X,Y};
+  const svg=$('#chart');
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('height',H);
+  let s='<defs><linearGradient id="af" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8791d" stop-opacity=".28"/><stop offset="1" stop-color="#e8791d" stop-opacity=".02"/></linearGradient></defs>';
+  /* zona overheat */
+  if(S.overheat<ymax) s+='<rect x="'+m.l+'" y="'+m.t+'" width="'+pw+'" height="'+Math.max(0,Y(S.overheat)-m.t)+'" fill="#fdeceb" opacity=".8"/>';
+  const ys=niceStep(ymax-ymin,6);
+  for(let v=Math.ceil(ymin/ys)*ys;v<=ymax;v+=ys){
+    s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#d3e5d9" stroke-width="1"/>';
+    s+='<text x="'+(m.l-8)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="11" fill="#587062">'+v+'</text>';
+  }
+  const xs=niceStep(d,Math.max(3,Math.floor(pw/64)));
+  for(let t=0;t<=d+1e-6;t+=xs){
+    s+='<line x1="'+X(t)+'" x2="'+X(t)+'" y1="'+m.t+'" y2="'+(m.t+ph)+'" stroke="#e6f1ea" stroke-width="1"/>';
+    s+='<text x="'+X(t)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="#587062">'+t+'</text>';
+  }
+  s+='<text x="'+(m.l+pw)+'" y="'+(H-1)+'" text-anchor="end" font-size="10.5" fill="#587062">menit</text>';
+  s+='<text x="4" y="11" font-size="10.5" fill="#587062">°C</text>';
+  /* zona target */
+  const yt=Y(S.hi),yb=Y(S.lo);
+  s+='<rect x="'+m.l+'" y="'+yt+'" width="'+pw+'" height="'+Math.max(2,yb-yt)+'" fill="#dcf0e3" opacity=".85"/>';
+  s+='<text x="'+(m.l+4)+'" y="'+(yt-5)+'" font-size="11" font-weight="600" fill="#17653a">Rentang kunci '+nz(S.lo)+'–'+nz(S.hi)+'°</text>';
+  if(S.overheat<=ymax){
+    s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(S.overheat)+'" y2="'+Y(S.overheat)+'" stroke="#c8372f" stroke-width="1.5" stroke-dasharray="2 4"/>';
+    s+='<text x="'+(W-m.r-2)+'" y="'+(Y(S.overheat)-5)+'" text-anchor="end" font-size="11" font-weight="600" fill="#c8372f">Overheat '+nz(S.overheat)+'°</text>';
+  }
+  /* prediksi, bagian yang melewati overheat berwarna merah */
+  const xsmp=new Set();
+  for(let i=0;i<=180;i++) xsmp.add(+(d*i/180).toFixed(3));
+  S.points.forEach(p=>xsmp.add(p.t));
+  const arr=[...xsmp].sort((a,b)=>a-b);
+  s+='<g opacity="0.25">';
+  s+='<path d="M'+arr.map(t=>X(t).toFixed(1)+' '+Y(S.fn(t)).toFixed(1)).join('L')+'" fill="none" stroke="#3c5a49" stroke-width="2.25" stroke-dasharray="6 5" stroke-linejoin="round"/>';
+  let run=[],runs=[];
+  arr.forEach(t=>{if(S.fn(t)>S.overheat+0.05) run.push(t);else{if(run.length) runs.push(run);run=[]}});
+  if(run.length) runs.push(run);
+  runs.forEach(r=>{s+='<path d="M'+r.map(t=>X(t).toFixed(1)+' '+Y(S.fn(t)).toFixed(1)).join('L')+'" fill="none" stroke="#c8372f" stroke-width="3" stroke-dasharray="6 5" stroke-linejoin="round"/>'});
+  s+='</g>';
+  /* matang */
+  const mt=clamp(S.matang,0,d),mx=X(mt),my=Y(S.fn(mt));
+  const anc=mx>W-90?'end':mx<90?'start':'middle';
+  s+='<line x1="'+mx+'" x2="'+mx+'" y1="'+my+'" y2="'+(m.t+ph)+'" stroke="#2e9d5a" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>';
+  s+='<g class="mk" data-m="1" style="cursor:ew-resize;touch-action:none"><circle cx="'+mx+'" cy="'+my+'" r="18" fill="transparent"/><circle cx="'+mx+'" cy="'+my+'" r="7.5" fill="#2e9d5a" stroke="#fff" stroke-width="2"/></g>';
+  s+='<text x="'+(anc==='start'?mx+8:anc==='end'?mx-8:mx)+'" y="'+Math.max(m.t+12,my-14)+'" text-anchor="'+anc+'" font-size="12" font-weight="700" fill="#17653a" style="paint-order:stroke;stroke:#fff;stroke-width:4px" pointer-events="none">Matang · '+nz(mt)+' mnt</text>';
+  /* titik kontrol */
+  S.points.forEach((p,i)=>{
+    const cx=X(p.t),cy=Y(p.T);
+    s+='<g class="pt" data-i="'+i+'" tabindex="0" role="slider" aria-label="Titik '+(i+1)+', menit '+nz(p.t)+', suhu '+nz(p.T)+' derajat"><circle cx="'+cx+'" cy="'+cy+'" r="18" fill="transparent"/><circle class="ring" cx="'+cx+'" cy="'+cy+'" r="6.5" fill="#fff" stroke="#17653a" stroke-width="2.5"/></g>';
+  });
+  $('#gStatic').innerHTML=s;
+  renderActual();
+  if(S.focusI>=0){const el=$('#chart [data-i="'+S.focusI+'"]');if(el) el.focus({preventScroll:true})}
+}
+function renderActual(){
+  if(!G) return;
+  const {X,Y,m,ph}=G;
+  let h=S.hist;
+  if(h.length>1200){const k=Math.ceil(h.length/1200);h=h.filter((_,i)=>i%k===0||i===h.length-1)}
+  let s='';
+  const leadT = Math.min(G.d, S.minute + 2);
+  const xact = new Set();
+  for(let i=0;i<=180;i++){ const t = +(G.d*i/180).toFixed(3); if(t<=leadT) xact.add(t); }
+  S.points.forEach(p=>{if(p.t<=leadT) xact.add(p.t)});
+  const aAct = [...xact].sort((a,b)=>a-b);
+  if(aAct.length>0){
+    s+='<path d="M'+aAct.map(t=>X(t).toFixed(1)+' '+Y(S.fn(t)).toFixed(1)).join('L')+'" fill="none" stroke="#3c5a49" stroke-width="2.25" stroke-dasharray="6 5" stroke-linejoin="round"/>';
+    let ar=[],ars=[];
+    aAct.forEach(t=>{if(S.fn(t)>S.overheat+0.05) ar.push(t);else{if(ar.length) ars.push(ar);ar=[]}});
+    if(ar.length) ars.push(ar);
+    ars.forEach(r=>{s+='<path d="M'+r.map(t=>X(t).toFixed(1)+' '+Y(S.fn(t)).toFixed(1)).join('L')+'" fill="none" stroke="#c8372f" stroke-width="3" stroke-dasharray="6 5" stroke-linejoin="round"/>'});
+    const tTip=aAct[aAct.length-1];
+    s+='<circle cx="'+X(tTip)+'" cy="'+Y(S.fn(tTip))+'" r="3.5" fill="#3c5a49"/>';
+  }
+  if(h.length>1){
+    const pts=h.map(p=>X(p.t).toFixed(1)+' '+Y(p.T).toFixed(1));
+    const base=(m.t+ph).toFixed(1);
+    s+='<path d="M'+pts.join('L')+'L'+X(h[h.length-1].t).toFixed(1)+' '+base+'L'+X(h[0].t).toFixed(1)+' '+base+'Z" fill="url(#af)"/>';
+    s+='<path d="M'+pts.join('L')+'" fill="none" stroke="#e8791d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  const cx=X(S.minute),cy=Y(S.temp);
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="10" fill="'+(S.alarm?'#c8372f':'#e8791d')+'" opacity=".25"/><circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+(S.alarm?'#c8372f':'#b95a0c')+'" stroke="#fff" stroke-width="2"/>';
+  $('#gActual').innerHTML=s;
+}
+function actualAt(t){
+  if(t>S.minute+0.01||!S.hist.length) return null;
+  let best=S.hist[0];
+  for(const p of S.hist){if(p.t<=t) best=p;else break}
+  return best.T;
+}
+const DEF_READ='Sentuh atau arahkan kursor ke grafik untuk melihat nilai di menit tertentu.';
+function showHover(t){
+  t=clamp(t,0,G.d);
+  const pr=S.fn(t),ac=actualAt(t);
+  const {X,Y,m,ph}=G;
+  let s='<line x1="'+X(t)+'" x2="'+X(t)+'" y1="'+m.t+'" y2="'+(m.t+ph)+'" stroke="#17653a" stroke-width="1" opacity=".5"/>';
+  s+='<circle cx="'+X(t)+'" cy="'+Y(pr)+'" r="4" fill="#fff" stroke="#3c5a49" stroke-width="2"/>';
+  if(ac!==null) s+='<circle cx="'+X(t)+'" cy="'+Y(ac)+'" r="4" fill="#e8791d" stroke="#fff" stroke-width="1.5"/>';
+  $('#gHover').innerHTML=s;
+  $('#readout').innerHTML='Menit <b>'+nz(t)+'</b> · Prediksi <b>'+f1(pr)+' °C</b>'+(ac!==null?' · Aktual <b>'+f1(ac)+' °C</b>':' · Aktual belum ada');
+}
+function clearHover(){ $('#gHover').innerHTML=''; $('#readout').textContent=DEF_READ }
+
+/* ====== Render: statistik, peringatan, parameter ====== */
+function reachTime(){for(let t=0;t<=S.duration;t+=0.5) if(S.fn(t)>=S.target-0.5) return t;return null}
+function renderStats(){
+  $('#sTarget').textContent=nz(S.lo)+'–'+nz(S.hi)+' °C';
+  const r=reachTime();
+  $('#sReach').textContent=r===null?'Tidak tercapai':nz(r)+' mnt';
+  $('#sLeft').textContent=nz(Math.max(0,S.duration-S.minute))+' mnt';
+  const w=Math.min(5,S.duration);
+  $('#sRate').textContent=f1((S.fn(w)-S.fn(0))/w)+' °C/mnt';
+  $('#tDur').textContent=nz(S.duration);
+  const o=overshoot();
+  const pk=Math.max(...S.points.map(q=>q.T)),over=pk>S.hi+0.05;
+  $('#warn').hidden=o===null&&!over;
+  $('#btnFixOh').hidden=o===null;
+  if(o===null&&over) $('#warnTxt').textContent='Puncak kurva '+nz(pk)+' °C di atas rentang kunci ('+nz(S.hi)+' °C). Burner otomatis akan menahan suhu di dalam rentang.';
+  if(o!==null) $('#warnTxt').textContent='Kurva melewati batas overheat '+nz(S.overheat)+' °C mulai menit '+nz(o)+'. Alarm akan berbunyi bila alat mengikuti kurva ini.';
+}
+const FIELDS=[
+  ['T0','Suhu awal','°C',0.5,'#fSuhu'],['Lo','Suhu min','°C',0.5,'#fSuhu'],['Hi','Suhu maks','°C',0.5,'#fSuhu'],['Oh','Batas overheat','°C',0.5,'#fAman'],
+  ['Dur','Durasi total','mnt',1,'#fWaktu'],['Reach','Capai target','mnt',1,'#fWaktu'],['Matang','Titik matang','mnt',1,'#fWaktu']
+];
+function buildFields(){
+  FIELDS.forEach(([k,label,u,step,host])=>{
+    const extra='';
+    $(host).insertAdjacentHTML('beforeend',
+      '<div class="fld" id="f'+k+'"><div class="lbl"><label for="p'+k+'">'+label+'</label><span class="vbox"><input id="p'+k+'" type="number" inputmode="decimal" step="'+step+'"><span>'+u+'</span></span></div>'+
+      '<input type="range" id="r'+k+'" step="'+step+'" aria-label="'+label+'"><div class="mm"><span id="n'+k+'"></span><span id="x'+k+'"></span></div>'+extra+'</div>');
+  });
+}
+buildFields();
+function paint(r){const p=(r.value-r.min)/((r.max-r.min)||1)*100;r.style.setProperty('--p',clamp(p,0,100)+'%')}
+function setR(k,v,min,max,u){
+  const r=$('#r'+k);r.min=min;r.max=max;
+  if(document.activeElement!==r) r.value=v;
+  paint(r);
+  $('#n'+k).textContent=nz(min)+' '+u;$('#x'+k).textContent=nz(max)+' '+u;
+}
+function renderParams(){
+  const vals={T0:S.T0,Lo:S.lo,Hi:S.hi,Dur:S.duration,Reach:S.reach,Matang:S.matang,Oh:S.overheat};
+  Object.keys(vals).forEach(k=>{const el=$('#p'+k);if(document.activeElement!==el) el.value=nz(vals[k])});
+  // $('#pOhLink').checked=S.ohLink;
+  $('#fReach').hidden=true;
+  document.querySelectorAll('#pmSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pm===S.pm)));
+  $('#chartSub').textContent='Sistem cerdas merancang kurva pemanasan ideal secara otomatis berdasarkan target dan durasi.';
+  $('#btnResetCurve').hidden=true;
+  setR('T0',S.T0,20,Math.max(60,S.T0),'°C');
+  setR('Lo',S.lo,20,150,'°C');setR('Hi',S.hi,20,150,'°C');
+  setR('Oh',S.overheat,S.hi+2,150,'°C');
+  setR('Dur',S.duration,0,Math.max(240,S.duration),'mnt');
+  if(+$('#rDur').value<1){$('#rDur').value=1;paint($('#rDur'))}
+  setR('Reach',S.reach,0,Math.max(3,Math.floor(S.duration*0.95)),'mnt');
+  setR('Matang',S.matang,matangMin(),S.duration,'mnt');
+  const lk=locked();
+  ['T0','Lo','Hi','Dur','Reach'].forEach(k=>{$('#p'+k).disabled=lk;$('#r'+k).disabled=lk});
+  $('#lockNote').hidden=!lk;
+  renderTpl();
+}
+function renderAll(){renderParams();renderChart();renderStats();renderLive();clearHover()}
+
+/* ====== Perubahan ====== */
+function changed(){
+  rebuild();
+  renderParams();renderChart();renderStats();renderLive();
+  sendCurve();
+}
+function setPm(mode,fromEdit){
+  if(mode===S.pm) return;
+  if(mode==='manual'){
+    S.pm='manual';
+    if(!fromEdit&&S.stash){S.points=S.stash.map(p=>({...p}))}
+    S.stash=null;
+  }else{
+    S.stash=S.points.map(p=>({...p}));
+    S.pm='auto';
+  }
+  changed();
+}
+function applyParam(k,v){
+  switch(k){
+    case 'T0':{
+      const old=S.T0;S.T0=clamp(v,20,80);
+      if(S.pm==='manual'&&S.points.length&&S.points[0].t===0&&S.points[0].T===old) S.points[0].T=S.T0;
+      if(S.minute===0&&!S.power){S.temp=S.T0;S.hist=[{t:0,T:S.T0,b:0}]}
+      break}
+    case 'Lo':S.lo=clamp(v,20,S.hi-2);break;
+    case 'Hi':S.hi=clamp(v,S.lo+2,150);if(S.overheat<S.hi+2)S.overheat=S.hi+2;break;
+    case 'Dur':{
+      const nd=clamp(Math.round(v),1,480),r=nd/S.duration;
+      S.points.forEach(p=>p.t=+(p.t*r).toFixed(1));
+      S.reach=Math.round(S.reach*r);S.matang=Math.round(S.matang*r);S.duration=nd;
+      if(S.stash) S.stash.forEach(p=>p.t=+(p.t*r).toFixed(1));
+      if(S.minute>=nd) resetSession();
+      break}
+    case 'Reach':S.reach=clamp(v,0,S.duration*0.95);break;
+    case 'Matang':S.matang=clamp(v,matangMin(),S.duration);break;
+    case 'Oh':S.overheat=clamp(v,S.hi+2,150);S.ohLink=false;break;
+  }
+  changed();
+  send({sp:S.target,lo:S.lo,hi:S.hi,reach:S.reach,dur:S.duration,oh:S.overheat});
+}
+function removePoint(i){
+  if(S.points.length<=2) return;
+  if(S.pm==='auto') setPm('manual',true);
+  S.points.splice(i,1);S.focusI=-1;changed();
+}
+
+/* ====== Interaksi grafik ====== */
+function toData(e){
+  const rc=$('#chart').getBoundingClientRect();
+  const px=(e.clientX-rc.left)*(G.W/rc.width),py=(e.clientY-rc.top)*(G.H/rc.height);
+  return {t:(px-G.m.l)/G.pw*G.d,T:G.ymin+(1-(py-G.m.t)/G.ph)*(G.ymax-G.ymin)};
+}
+function setPointFromDrag(i,t,T){
+  const p=S.points,lo=i>0?p[i-1].t+0.5:0,hi=i<p.length-1?p[i+1].t-0.5:S.duration;
+  p[i].t=clamp(Math.round(t),lo,Math.max(lo,hi));
+  p[i].T=clamp(Math.round(T*2)/2,G.ymin,drag.ymax);
+  S.focusI=i;
+}
+const svgEl=$('#chart');
+svgEl.addEventListener('pointerdown',e=>{
+  if(!G) return;
+  const hi=e.target.closest('[data-i]'),hm=e.target.closest('[data-m]');
+  const now=Date.now(),near=Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<24;
+  const dbl=near&&now-lastTap.t<320;
+  lastTap={t:now,x:e.clientX,y:e.clientY};
+  if(dbl){
+    e.preventDefault();lastTap.t=0;
+    if(hi){removePoint(+hi.dataset.i)}
+    else if(!hm){
+      const q=toData(e);
+      if(q.t>=0&&q.t<=G.d){
+        if(S.pm==='auto') setPm('manual',true);
+        S.points.push({t:Math.round(q.t),T:clamp(Math.round(q.T*2)/2,G.ymin,G.ymax)});
+        changed();
+      }
+    }
+    return;
+  }
+  if(hi||hm){
+    e.preventDefault();
+    if(hi&&S.pm==='auto') setPm('manual',true);
+    drag={i:hi?+hi.dataset.i:-1,m:!!hm,ymax:G.ymax};
+    S.dragYmax=G.ymax;
+    svgEl.setPointerCapture(e.pointerId);
+  }else{
+    const q=toData(e);showHover(q.t);
+  }
+});
+svgEl.addEventListener('pointermove',e=>{
+  if(!G) return;
+  const q=toData(e);
+  if(drag){
+    if(drag.m){
+      S.matang=clamp(Math.round(q.t),matangMin(),S.duration);
+      $('#readout').innerHTML='Titik matang · menit <b>'+nz(S.matang)+'</b> · <b>'+f1(S.fn(S.matang))+' °C</b>';
+    }else{
+      setPointFromDrag(drag.i,q.t,q.T);
+      $('#readout').innerHTML='Titik '+(drag.i+1)+' · menit <b>'+nz(S.points[drag.i].t)+'</b> · <b>'+nz(S.points[drag.i].T)+' °C</b>';
+    }
+    rebuild();renderChart();renderStats();
+    $('#pOh').value=nz(S.overheat);setR('Oh',S.overheat,Math.min(35,S.overheat),150,'°C');
+    $('#pMatang').value=nz(S.matang);setR('Matang',S.matang,matangMin(),S.duration,'mnt');
+  }else if(e.pointerType==='mouse'){
+    if(q.t>=0&&q.t<=G.d) showHover(q.t);
+  }
+});
+function endDrag(){
+  if(!drag) return;
+  drag=null;S.dragYmax=0;
+  rebuild();renderParams();renderChart();renderStats();renderLive();sendCurve();
+}
+svgEl.addEventListener('pointerup',endDrag);
+svgEl.addEventListener('pointercancel',endDrag);
+svgEl.addEventListener('pointerleave',e=>{if(!drag&&e.pointerType==='mouse') clearHover()});
+svgEl.addEventListener('keydown',e=>{
+  const g=e.target.closest('[data-i]');if(!g) return;
+  const i=+g.dataset.i,p=S.points[i];if(!p) return;
+  if(e.key==='Delete'||e.key==='Backspace'){removePoint(i);e.preventDefault();return}
+  const stepT=e.shiftKey?5:1,stepY=e.shiftKey?5:0.5;
+  const lo=i>0?S.points[i-1].t+0.5:0,hi=i<S.points.length-1?S.points[i+1].t-0.5:S.duration;
+  let handled=true;
+  if(S.pm==='auto'&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) setPm('manual',true);
+  if(e.key==='ArrowLeft') S.points[i].t=clamp(S.points[i].t-stepT,lo,Math.max(lo,hi));
+  else if(e.key==='ArrowRight') S.points[i].t=clamp(S.points[i].t+stepT,lo,Math.max(lo,hi));
+  else if(e.key==='ArrowUp') S.points[i].T=clamp(S.points[i].T+stepY,20,150);
+  else if(e.key==='ArrowDown') S.points[i].T=clamp(S.points[i].T-stepY,20,150);
+  else handled=false;
+  if(handled){e.preventDefault();S.focusI=i;changed()}
+});
+svgEl.addEventListener('focusin',e=>{const g=e.target.closest&&e.target.closest('[data-i]');if(g) S.focusI=+g.dataset.i});
+svgEl.addEventListener('focusout',()=>{setTimeout(()=>{if(!svgEl.contains(document.activeElement)) S.focusI=-1},0)});
+
+/* ====== Kontrol lain ====== */
+$('#pmSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b) setPm(b.dataset.pm,false)});
+$('#btnResetCurve').addEventListener('click',()=>{S.stash=null;S.pm='auto';S.focusI=-1;changed()});
+$('#btnFixOh').addEventListener('click',()=>{S.ohLink=true;changed();send({oh:S.overheat})});
+FIELDS.forEach(([k])=>{
+  $('#p'+k).addEventListener('change',e=>{
+    const v=num(e.target.value,NaN);
+    if(!isFinite(v)){renderParams();return}
+    applyParam(k,v);
+  });
+  $('#r'+k).addEventListener('input',e=>applyParam(k,+e.target.value));
+});
+// $('#pOhLink').addEventListener('change',e=>{S.ohLink=e.target.checked;changed();send({oh:S.overheat})});
+
+$('#swAuto').addEventListener('change',e=>{S.ctrlAuto=e.target.checked;renderLive();send({auto:S.ctrlAuto})});
+$('#btnPwr').addEventListener('click',()=>{
+  unlockAudio();
+  const running=S.power&&S.status==='running'&&S.minute>=1;
+  if(running&&!stopArm){stopArm=setTimeout(()=>{stopArm=0;renderLive()},3000);renderLive();return}
+  if(stopArm){clearTimeout(stopArm);stopArm=0}
+  if(!S.power&&S.status==='finish') resetSession();
+  S.power=!S.power;
+  if(!S.power) S.burner=0;
+  S.status=S.power?'running':(S.status==='finish'?'finish':'standby');
+  renderLive();
+  send(S.power?Object.assign(cfgPayload(),{auto:S.ctrlAuto,power:true}):{power:false});
+});
+$('#btnRestart').addEventListener('click',()=>{resetSession();renderLive();send({power:false,reset:true})});
+$('#bSlider').addEventListener('input',e=>{S.burner=+e.target.value;$('#bVal').textContent=S.burner;$('#tBurn').textContent=S.burner;paint(e.target)});
+$('#bSlider').addEventListener('change',e=>{send({burner:+e.target.value})});
+$('#btnMute').addEventListener('click',()=>{
+  if(S.alarm){S.mute=!S.mute;if(S.mute) stopFinish()}
+  else stopFinish();
+  renderLive();
+});
+
+/* ====== CSV ====== */
+function buildCsv(){
+  const rows=['menit,suhu_aktual_C,burner_persen,suhu_prediksi_C,status'];
+  const last=Math.floor(S.minute);
+  for(let m=0;m<=last;m++){
+    let h=S.hist[0];for(const p of S.hist){if(p.t<=m+1e-6) h=p;else break}
+    rows.push([m,h.T.toFixed(1),Math.round(h.b),S.fn(m).toFixed(1),S.status].join(','));
+  }
+  $('#csvText').value=rows.join('\n');
+}
+$('#btnCsv').addEventListener('click',()=>{
+  const p=$('#csvPanel');p.hidden=!p.hidden;
+  $('#btnCsv').setAttribute('aria-expanded',String(!p.hidden));
+  if(!p.hidden) buildCsv();
+});
+$('#btnCopy').addEventListener('click',()=>{
+  const ta=$('#csvText'),btn=$('#btnCopy');
+  const done=()=>{btn.textContent='Tersalin';setTimeout(()=>btn.textContent='Salin data',1600)};
+  const fallback=()=>{ta.focus();ta.select();try{document.execCommand('copy');done()}catch(_){btn.textContent='Tekan Ctrl+C'}};
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done,fallback);else fallback();
+});
+
+/* ====== Mulai ====== */
+(function(){let s='';[74,108,142].forEach(y=>{[58,106,154].forEach(x=>{for(let k=0;k<4;k++){s+='<path d="M'+(x+(k%2)*2)+' '+(y-4-k*5)+' q6 -7 12 0 t12 0 t12 0"/>'}})});$('#ovNoodle').innerHTML=s})();
+if(window.innerWidth<900) $('#oven').open=false;
+rebuild();resetSession();
+if(CFG.LIVE){$('#conn').hidden=false;$('#conn').textContent='Menghubungkan';poll();setInterval(poll,CFG.POLL)}
+/* ====== Template mode otomatis ====== */
+const TPL_KEY='smartagro.tpls.v1',TPL_SEL='smartagro.tplId.v1';
+function tplLoad(){
+  let a=null,id='';
+  try{a=JSON.parse(localStorage.getItem(TPL_KEY));id=localStorage.getItem(TPL_SEL)||''}catch(e){}
+  const ok=Array.isArray(a)&&a.length&&a.every(t=>t&&typeof t.id==='string'&&typeof t.name==='string'&&isFinite(t.lo)&&isFinite(t.hi)&&isFinite(t.reach));
+  S.tpls=ok?a:[{id:'t1',name:'Mie sehat (Formula 1)',lo:50,hi:60,reach:27},{id:'t2',name:'Formula 2 (contoh)',lo:70,hi:80,reach:20}];
+  S.tplId=S.tpls.some(t=>t.id===id)?id:S.tpls[0].id;
+}
+function tplSave(){try{localStorage.setItem(TPL_KEY,JSON.stringify(S.tpls));localStorage.setItem(TPL_SEL,S.tplId)}catch(e){}}
+function curTpl(){return S.tpls.find(t=>t.id===S.tplId)||null}
+function applyTpl(id,silent){
+  const t=S.tpls.find(x=>x.id===id);if(!t) return;
+  S.tplId=id;S.name=t.name;S.lo=t.lo;S.hi=t.hi;
+  S.reach=clamp(t.reach,0,S.duration*0.95);
+  S.pm='auto';S.stash=null;S.focusI=-1;S.held=false;
+  tplSave();changed();
+  if(!silent) send({tpl:t.name,lo:S.lo,hi:S.hi,reach:S.reach});
+}
+let tplSig='',tplEditing=null,delArm=0;
+function renderTpl(){
+  const lk=locked(),sig=S.tpls.map(t=>t.id+'|'+t.name).join('~')+'#'+S.tplId;
+  const sel=$('#tplSel');
+  if(sig!==tplSig){
+    tplSig=sig;
+    sel.innerHTML='';
+    S.tpls.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name;sel.appendChild(o)});
+    sel.value=S.tplId;
+  }
+  sel.disabled=lk;$('#tplNew').disabled=lk;$('#tplEdit').disabled=lk;$('#tplDel').disabled=lk||S.tpls.length<=1;
+  const t=curTpl();
+  const dirty=t&&(t.lo!==S.lo||t.hi!==S.hi||Math.round(t.reach)!==Math.round(S.reach));
+  $('#tplInfo').innerHTML='';
+  const info=document.createElement('span');
+  info.textContent=t?('Rentang '+nz(S.lo)+'–'+nz(S.hi)+' °C · capai target menit ke-'+nz(S.reach)+(dirty?' · nilai sudah diubah dari template.':'')):'';
+  $('#tplInfo').appendChild(info);
+  if(dirty&&!lk){
+    const b=document.createElement('button');b.type='button';b.className='linkbtn';b.textContent='Simpan ke template';
+    b.addEventListener('click',()=>{t.lo=S.lo;t.hi=S.hi;t.reach=Math.round(S.reach);tplSave();renderTpl()});
+    $('#tplInfo').appendChild(b);
+  }
+}
+function openTplForm(t){
+  tplEditing=t?t.id:null;
+  $('#tfName').value=t?t.name:'';$('#tfLo').value=t?t.lo:'';$('#tfHi').value=t?t.hi:'';$('#tfReach').value=t?t.reach:'';
+  $('#tfErr').textContent='';$('#tplForm').hidden=false;$('#tfName').focus();
+}
+function closeTplForm(){$('#tplForm').hidden=true;tplEditing=null}
+$('#tplSel').addEventListener('change',e=>applyTpl(e.target.value));
+$('#tplNew').addEventListener('click',()=>openTplForm(null));
+$('#tplEdit').addEventListener('click',()=>openTplForm(curTpl()));
+$('#tfCancel').addEventListener('click',closeTplForm);
+$('#tplDel').addEventListener('click',()=>{
+  if(S.tpls.length<=1) return;
+  const b=$('#tplDel');
+  if(!delArm){delArm=setTimeout(()=>{delArm=0;b.textContent='Hapus'},3000);b.textContent='Yakin hapus?';return}
+  clearTimeout(delArm);delArm=0;b.textContent='Hapus';
+  S.tpls=S.tpls.filter(t=>t.id!==S.tplId);
+  applyTpl(S.tpls[0].id);
+});
+$('#tplForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=$('#tfName').value.trim(),lo=num($('#tfLo').value,NaN),hi=num($('#tfHi').value,NaN),reach=num($('#tfReach').value,NaN);
+  const err=m=>{$('#tfErr').textContent=m};
+  if(!name) return err('Isi nama template.');
+  if(!isFinite(lo)||!isFinite(hi)) return err('Isi suhu minimum dan maksimum.');
+  if(lo<20||hi>150) return err('Suhu harus antara 20 dan 150 °C.');
+  if(hi-lo<2) return err('Suhu maksimum minimal 2 °C di atas minimum.');
+  if(!isFinite(reach)||reach<1||reach>480) return err('Capai target harus 1 sampai 480 menit.');
+  let t=tplEditing&&S.tpls.find(x=>x.id===tplEditing);
+  if(t){t.name=name;t.lo=lo;t.hi=hi;t.reach=Math.round(reach)}
+  else{t={id:'t'+Date.now().toString(36),name,lo,hi,reach:Math.round(reach)};S.tpls.push(t)}
+  closeTplForm();
+  applyTpl(t.id);
+});
+tplLoad();
+{const t0=curTpl();S.name=t0.name;S.lo=t0.lo;S.hi=t0.hi;S.reach=t0.reach;rebuild()}
+renderAll();
+if('ResizeObserver' in window) new ResizeObserver(()=>{if(!drag) renderChart()}).observe($('#chartBox'));
+else window.addEventListener('resize',renderChart);
+setInterval(tick,2500);
+setInterval(soundLoop,200);
+$('#btnIgn').addEventListener('click',ignite);
+setInterval(renderIgn,200);
+})();
+</script>
+
+</body></html>
